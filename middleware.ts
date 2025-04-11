@@ -2,6 +2,8 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',
+  '/sign-in',
+  '/sign-up',
   '/events/:id',
   '/api/webhook/clerk',
   '/api/webhook/stripe',
@@ -10,18 +12,18 @@ const isPublicRoute = createRouteMatcher([
 
 export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) {
-    return; // Allow access
+    return; // Public route — no auth needed
   }
 
   const { userId } = await auth();
 
   if (!userId) {
-    // Redirect unauthenticated users
     return Response.redirect(new URL('/sign-in', req.url));
   }
 
-  // Allow access for signed-in users
+  // User is signed in — continue
 });
+
 export const config = {
   matcher: [
     '/((?!_next|favicon.ico|.*\\..*).*)',
