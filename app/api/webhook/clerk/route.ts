@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { clerkClient } from '@clerk/clerk-sdk-node';
 import type { WebhookEvent } from '@clerk/clerk-sdk-node';
+import { createUser } from '@/lib/actions/user.action'; // Your user creation function
 
 import User from '@/lib/mongodb/database/models/user.model'; // Your Mongoose model
 import {connectToDatabase} from '@/lib/mongodb/database/index'; // Your DB connection util
@@ -38,7 +39,7 @@ export async function POST(req: Request) {
 
   // 4. Handle user.created event
   const eventType = evt.type;
-
+  
   if (eventType === 'user.created') {
     const { id, email_addresses, username, image_url } = evt.data;
 
@@ -47,11 +48,20 @@ export async function POST(req: Request) {
     try {
       await connectToDatabase();
 
-      const newUser = await User.create({
+      console.log("Webhook received - creating user:", {
+        id,
+        email,
+        username: username ?? '',
+        image_url,
+      });
+
+      const newUser = await createUser({
         clerkId: id,
         email,
-        username,
-        imageUrl: image_url,
+        username: username ?? '',
+        photo: image_url,
+        firstName: evt.data.first_name ?? 'Unknown',
+        lastName: evt.data.last_name ?? 'Unknown',
       });
 
       // 5. Sync MongoDB ID back to Clerk public metadata
