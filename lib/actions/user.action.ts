@@ -2,22 +2,29 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { connectToDatabase } from '@/lib/mongodb/database'
-import User from '@/lib/mongodb/database/models/user.model'
-import Order from '@/lib/mongodb/database/models/order.model'
-import Event from '@/lib/mongodb/database/models/event.model'
-import { handleError } from '@/lib/utils'
+import { connectToDatabase } from '../mongodb/database'
+import User from '../mongodb/database/models/user.model'
+import Order from '../mongodb/database/models/order.model'
+import Event from '../mongodb/database/models/event.model'
+import { handleError } from '../utils'
 
-import { CreateUserParams, UpdateUserParams } from '@/types'
+import { CreateUserParams, UpdateUserParams } from '../../types'
 
 export async function createUser(user: CreateUserParams) {
   try {
+    console.log('Starting user creation process for:', user.email)
     await connectToDatabase()
+    console.log('Successfully connected to database')
 
+    console.log('Creating user in MongoDB...')
     const newUser = await User.create(user)
+    console.log('Successfully created user:', newUser._id)
+    
     return JSON.parse(JSON.stringify(newUser))
   } catch (error) {
+    console.error('Error creating user:', error)
     handleError(error)
+    throw error // Re-throw to ensure webhook sees the error
   }
 }
 
@@ -51,26 +58,21 @@ export async function deleteUser(clerkId: string) {
   try {
     await connectToDatabase()
 
-    // Find user to delete
     const userToDelete = await User.findOne({ clerkId })
 
     if (!userToDelete) {
       throw new Error('User not found')
     }
 
-    // Unlink relationships
     await Promise.all([
-      // Update the 'events' collection to remove references to the user
       Event.updateMany(
         { _id: { $in: userToDelete.events } },
         { $pull: { organizer: userToDelete._id } }
       ),
 
-      // Update the 'orders' collection to remove references to the user
       Order.updateMany({ _id: { $in: userToDelete.orders } }, { $unset: { buyer: 1 } }),
     ])
 
-    // Delete user
     const deletedUser = await User.findByIdAndDelete(userToDelete._id)
     revalidatePath('/')
 
