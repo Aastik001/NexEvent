@@ -41,7 +41,7 @@ const Header = () => {
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
           <CalendarDays className="h-6 w-6 text-event-purple" />
-          <span className="font-bold text-xl text-event-dark">EventWave</span>
+          <span className="font-bold text-xl text-event-dark">NexEvent</span>
         </Link>
         <nav className="flex items-center gap-4">
           <Link to="/">
@@ -91,3 +91,4 @@ const Header = () => {
 };
 
 export default Header;
+
