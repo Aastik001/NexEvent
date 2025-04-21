@@ -1,4 +1,3 @@
-
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { mockEvents } from "../data/mockEvents";
 import { Button } from "@/components/ui/button";
@@ -87,7 +86,7 @@ const EventDetailsPage = () => {
       toast({
         title: "Ticket Confirmed!",
         description: "Your ticket for the event is confirmed.",
-        variant: "success",
+        variant: "default",
       });
     } else {
       // Paid event: Redirect to payment page with event ID + price
@@ -229,4 +228,3 @@ const EventDetailsPage = () => {
 };
 
 export default EventDetailsPage;
-

@@ -10,4 +10,6 @@ export interface Event {
   imageUrl?: string;
   attendees: string[];
   category: 'business' | 'social' | 'education' | 'other';
+  price?: number;
+  admissionFree?: boolean;
 }
