@@ -18,25 +18,50 @@ const SignupPage = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      // Sign up with Supabase auth
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Sign up failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        // Check if user was created
+        if (data && data.user) {
+          console.log("User created:", data.user);
+          
+          toast({
+            title: "Sign up successful!",
+            description: "You can now log in with your credentials.",
+          });
+          navigate("/login");
+        } else {
+          toast({
+            title: "Sign up issue",
+            description: "User account created but may require email verification. Please check your email.",
+            variant: "default",
+          });
+          navigate("/login");
+        }
+      }
+    } catch (error: any) {
+      setLoading(false);
       toast({
-        title: "Sign up failed",
-        description: error.message,
+        title: "Unexpected error",
+        description: error.message || "Something went wrong during sign up.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Sign up successful!",
-        description: "You can now log in with your credentials.",
-      });
-      navigate("/login");
     }
   };
 
