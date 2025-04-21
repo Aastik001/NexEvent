@@ -1,16 +1,25 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import EventCard from "../components/EventCard";
 import { mockEvents } from "../data/mockEvents";
 import CategoryFilter from "../components/CategoryFilter";
 import { Calendar, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { getEvents } from "@/utils/eventStorage";
+import { Event } from "../types/event";
 
 const EventsPage = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
 
-  const filteredEvents = mockEvents.filter(event => {
+  // Combine mock events and user-created events
+  useEffect(() => {
+    const userEvents = getEvents();
+    setAllEvents([...mockEvents, ...userEvents]);
+  }, []);
+
+  const filteredEvents = allEvents.filter(event => {
     // Apply category filter
     const matchesCategory = !categoryFilter || event.category === categoryFilter;
     

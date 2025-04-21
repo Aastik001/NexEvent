@@ -27,6 +27,7 @@ import { Calendar, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
+import { saveEvent } from "@/utils/eventStorage";
 
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -116,13 +117,28 @@ const CreateEventPage = () => {
   const admissionFree = form.watch("admissionFree");
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // For demonstration, just log/redirect (implement actual db logic as needed)
-    console.log(values);
-    toast({
-      title: "Event Created!",
-      description: "Your event has been created successfully",
-    });
-    navigate("/");
+    // Save the event to localStorage
+    try {
+      const eventData = {
+        ...values,
+        category: values.category as 'business' | 'social' | 'education' | 'other',
+      };
+      saveEvent(eventData);
+      
+      console.log(values);
+      toast({
+        title: "Event Created!",
+        description: "Your event has been created successfully",
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Error saving event:", error);
+      toast({
+        title: "Error Creating Event",
+        description: "There was a problem creating your event. Please try again.",
+        variant: "destructive",
+      });
+    }
   }
 
   if (isLoadingUser) {
