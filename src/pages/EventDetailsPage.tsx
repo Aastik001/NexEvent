@@ -4,15 +4,40 @@ import { mockEvents } from "../data/mockEvents";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Share2, User, Users } from "lucide-react";
 import { format, parse } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Event } from "@/types/event";
+import { getEvents } from "@/utils/eventStorage";
+import { useToast } from "@/hooks/use-toast";
 
 const EventDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<Event | undefined>(
-    mockEvents.find((e) => e.id === id)
-  );
+  const [event, setEvent] = useState<Event | undefined>(undefined);
   const [isAttending, setIsAttending] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch event from both mock data and local storage
+  useEffect(() => {
+    // First check mock events
+    let foundEvent = mockEvents.find((e) => e.id === id);
+    
+    // If not found in mock events, check local storage
+    if (!foundEvent) {
+      const userEvents = getEvents();
+      foundEvent = userEvents.find((e) => e.id === id);
+    }
+    
+    if (foundEvent) {
+      setEvent(foundEvent);
+      // Check if current user is attending
+      setIsAttending(foundEvent.attendees.includes("currentUser"));
+    } else {
+      toast({
+        title: "Event not found",
+        description: "The event you're looking for couldn't be found.",
+        variant: "destructive",
+      });
+    }
+  }, [id, toast]);
 
   if (!event) {
     return (
