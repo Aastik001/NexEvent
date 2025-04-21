@@ -1,8 +1,7 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { mockEvents } from "../data/mockEvents";
 import { useState, useEffect } from "react";
-import { Event } from "@/types/event";
+import type { Event } from "@/types/event";
 import { getEvents } from "@/utils/eventStorage";
 import { useToast } from "@/hooks/use-toast";
 import EventDetailsMain from "@/components/event-details/EventDetailsMain";
@@ -20,7 +19,6 @@ const EventDetailsPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Get the current user
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
       setUser(data?.user);
@@ -58,7 +56,6 @@ const EventDetailsPage = () => {
     }
 
     if (hasTicket) {
-      // Allow cancelling only for free events
       if (isTicketFree(event!)) {
         setEvent({
           ...event!,
@@ -70,23 +67,17 @@ const EventDetailsPage = () => {
           variant: "destructive",
         });
       }
-      // No cancel for paid events
       return;
     }
 
-    // Free event: Confirm ticket instantly
     if (isTicketFree(event!)) {
-      // Update the event attendees
       setEvent({
         ...event!,
         attendees: [...event!.attendees, "currentUser"],
       });
       
-      // Save the ticket to storage
       if (event) {
         saveTicket(user.id, event.title, event.date);
-        
-        // Dispatch a custom event to notify other components about the ticket update
         window.dispatchEvent(new Event('ticketsUpdated'));
       }
       
@@ -97,7 +88,6 @@ const EventDetailsPage = () => {
         variant: "default",
       });
     } else {
-      // Paid event: Redirect to payment page with event ID + price
       navigate(`/payment?eventId=${event!.id}&price=${getTicketPrice(event!)}`);
     }
   };
