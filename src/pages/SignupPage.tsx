@@ -1,10 +1,10 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus } from "lucide-react";
-// @ts-expect-error: Supabase client is injected by Lovable/Supabase integration
 import { supabase } from "@/lib/supabaseClient";
 
 const SignupPage = () => {

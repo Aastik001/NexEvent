@@ -1,8 +1,8 @@
+
 import { CalendarDays, Plus, User, LogIn, UserPlus, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
-// @ts-expect-error: Supabase client is injected by Lovable/Supabase integration
 import { supabase } from "@/lib/supabaseClient";
 
 const Header = () => {
