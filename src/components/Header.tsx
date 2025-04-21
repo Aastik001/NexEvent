@@ -1,4 +1,4 @@
-import { CalendarDays, Plus, User, LogIn, UserPlus, User, LogOut } from "lucide-react";
+import { CalendarDays, Plus, User, LogIn, UserPlus, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
