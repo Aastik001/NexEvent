@@ -1,6 +1,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,8 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 import { Calendar, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -45,10 +48,41 @@ const formSchema = z.object({
   }),
   category: z.enum(["business", "social", "education", "other"]),
   imageUrl: z.string().optional(),
+  admissionFree: z.boolean().default(false),
+  price: z
+    .union([
+      z.string().transform(val => val === "" ? 0 : parseFloat(val)).refine(val => val >= 0, { message: "Price must be 0 or more." }),
+      z.number().refine(val => val >= 0, { message: "Price must be 0 or more." })
+    ])
+    .default(0),
 });
 
 const CreateEventPage = () => {
   const navigate = useNavigate();
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check authentication state
+  useEffect(() => {
+    let ignore = false;
+    async function checkUser() {
+      setIsLoadingUser(true);
+      const { data } = await supabase.auth.getUser();
+      if (!ignore) {
+        if (data?.user) {
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+          navigate("/login", { replace: true });
+        }
+        setIsLoadingUser(false);
+      }
+    }
+    checkUser();
+    return () => {
+      ignore = true;
+    };
+  }, [navigate]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -61,14 +95,30 @@ const CreateEventPage = () => {
       organizer: "",
       category: "social",
       imageUrl: "",
+      admissionFree: false,
+      price: 0,
     },
   });
 
+  // Watch "admissionFree" to control price field
+  const admissionFree = form.watch("admissionFree");
+
   function onSubmit(values: z.infer<typeof formSchema>) {
+    // For demonstration, just log/redirect (implement actual db logic as needed)
     console.log(values);
-    // In a real app, we would submit to a backend here
-    // For now, we'll just navigate back to the events page
     navigate("/");
+  }
+
+  if (isLoadingUser) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <span className="text-xl text-gray-500">Checking authentication…</span>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null; // User will be redirected by the useEffect above
   }
 
   return (
@@ -241,6 +291,55 @@ const CreateEventPage = () => {
                 )}
               />
 
+              {/* Admission Free Checkbox & Price */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <FormField
+                  control={form.control}
+                  name="admissionFree"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center gap-2 pt-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={!!field.value}
+                          onCheckedChange={checked => field.onChange(Boolean(checked))}
+                          id="admission-free"
+                        />
+                      </FormControl>
+                      <FormLabel htmlFor="admission-free" className="mb-0">
+                        Admission is Free
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        {admissionFree ? "Event Price (disabled)" : "Event Price"}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          placeholder="0.00"
+                          {...field}
+                          value={admissionFree ? "" : field.value ?? ""}
+                          disabled={admissionFree}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Set the price for admission (leave at 0 for free events).
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <div className="flex justify-end gap-4 pt-4">
                 <Button
                   type="button"
@@ -262,3 +361,4 @@ const CreateEventPage = () => {
 };
 
 export default CreateEventPage;
+
