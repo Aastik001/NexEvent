@@ -7,12 +7,15 @@ import { supabase } from "@/lib/supabaseClient";
 
 const Header = () => {
   const [user, setUser] = useState<null | { email: string }>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Get user on mount
     const fetchUser = async () => {
+      setLoading(true);
       const { data } = await supabase.auth.getUser();
       setUser(data?.user ?? null);
+      setLoading(false);
     };
     fetchUser();
 
@@ -50,7 +53,9 @@ const Header = () => {
               Create Event
             </Button>
           </Link>
-          {user ? (
+          {loading ? (
+            <div className="h-10 w-20 bg-gray-100 animate-pulse rounded-md"></div>
+          ) : user ? (
             <>
               <Button variant="ghost" size="icon" className="rounded-full" title={user.email}>
                 <User className="h-5 w-5" />

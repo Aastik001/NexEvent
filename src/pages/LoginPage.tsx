@@ -35,7 +35,8 @@ const LoginPage = () => {
       toast({
         title: "Login successful!",
       });
-      navigate("/");
+      // Use redirect instead of navigate to ensure page refresh
+      window.location.href = "/";
     }
   };
 

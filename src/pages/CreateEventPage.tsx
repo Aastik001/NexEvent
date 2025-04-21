@@ -1,6 +1,6 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, Controller } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ import { useNavigate } from "react-router-dom";
 import { Calendar, Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   title: z.string().min(3, {
@@ -60,29 +61,40 @@ const formSchema = z.object({
 const CreateEventPage = () => {
   const navigate = useNavigate();
   const [isLoadingUser, setIsLoadingUser] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const { toast } = useToast();
 
   // Check authentication state
   useEffect(() => {
-    let ignore = false;
-    async function checkUser() {
+    const checkUser = async () => {
       setIsLoadingUser(true);
-      const { data } = await supabase.auth.getUser();
-      if (!ignore) {
+      try {
+        const { data } = await supabase.auth.getUser();
         if (data?.user) {
-          setIsAuthenticated(true);
+          setUser(data.user);
         } else {
-          setIsAuthenticated(false);
+          toast({
+            title: "Authentication required",
+            description: "You need to be logged in to create an event",
+            variant: "destructive",
+          });
           navigate("/login", { replace: true });
         }
+      } catch (error) {
+        console.error("Auth error:", error);
+        toast({
+          title: "Authentication error",
+          description: "Please try logging in again",
+          variant: "destructive",
+        });
+        navigate("/login", { replace: true });
+      } finally {
         setIsLoadingUser(false);
       }
-    }
-    checkUser();
-    return () => {
-      ignore = true;
     };
-  }, [navigate]);
+    
+    checkUser();
+  }, [navigate, toast]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -106,6 +118,10 @@ const CreateEventPage = () => {
   function onSubmit(values: z.infer<typeof formSchema>) {
     // For demonstration, just log/redirect (implement actual db logic as needed)
     console.log(values);
+    toast({
+      title: "Event Created!",
+      description: "Your event has been created successfully",
+    });
     navigate("/");
   }
 
@@ -117,7 +133,7 @@ const CreateEventPage = () => {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return null; // User will be redirected by the useEffect above
   }
 
@@ -361,4 +377,3 @@ const CreateEventPage = () => {
 };
 
 export default CreateEventPage;
-
