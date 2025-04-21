@@ -12,6 +12,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/create-event" element={<CreateEventPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/signup" element={<SignupPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

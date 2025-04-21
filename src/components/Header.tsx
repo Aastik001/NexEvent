@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 const Header = () => {
-  const [user, setUser] = useState<null | { email: string }>(null);
+  const [user, setUser] = useState<null | { email: string; id?: string }>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,9 +57,12 @@ const Header = () => {
             <div className="h-10 w-20 bg-gray-100 animate-pulse rounded-md"></div>
           ) : user ? (
             <>
-              <Button variant="ghost" size="icon" className="rounded-full" title={user.email}>
-                <User className="h-5 w-5" />
-              </Button>
+              <Link to="/profile">
+                <Button variant="ghost" className="gap-2" title="Profile">
+                  <User className="h-5 w-5" />
+                  Profile
+                </Button>
+              </Link>
               <Button variant="ghost" onClick={handleLogout} title="Logout">
                 <LogOut className="h-4 w-4" />
                 Logout
