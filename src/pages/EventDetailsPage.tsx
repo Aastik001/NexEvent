@@ -1,5 +1,5 @@
 
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { mockEvents } from "../data/mockEvents";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, MapPin, Share2, User, Users } from "lucide-react";
@@ -9,27 +9,34 @@ import { Event } from "@/types/event";
 import { getEvents } from "@/utils/eventStorage";
 import { useToast } from "@/hooks/use-toast";
 
+// Helpers to check if a ticket is free or paid.
+const isTicketFree = (event: any) => {
+  return event?.admissionFree === true || !event?.price || event?.price === 0;
+};
+
+const getTicketPrice = (event: any) => {
+  return typeof event?.price === "number" ? event.price : 0;
+};
+
 const EventDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<Event | undefined>(undefined);
-  const [isAttending, setIsAttending] = useState(false);
+  const [hasTicket, setHasTicket] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Fetch event from both mock data and local storage
   useEffect(() => {
-    // First check mock events
     let foundEvent = mockEvents.find((e) => e.id === id);
-    
-    // If not found in mock events, check local storage
+
     if (!foundEvent) {
       const userEvents = getEvents();
       foundEvent = userEvents.find((e) => e.id === id);
     }
-    
+
     if (foundEvent) {
       setEvent(foundEvent);
-      // Check if current user is attending
-      setIsAttending(foundEvent.attendees.includes("currentUser"));
+      setHasTicket(foundEvent.attendees.includes("currentUser"));
     } else {
       toast({
         title: "Event not found",
@@ -53,21 +60,39 @@ const EventDetailsPage = () => {
     );
   }
 
-  const handleRSVP = () => {
-    if (isAttending) {
-      // Remove from attendees
-      setEvent({
-        ...event,
-        attendees: event.attendees.filter((a) => a !== "currentUser"),
-      });
-    } else {
-      // Add to attendees
+  const handleBookTicket = () => {
+    if (hasTicket) {
+      // Allow cancelling only for free events
+      if (isTicketFree(event)) {
+        setEvent({
+          ...event,
+          attendees: event.attendees.filter((a) => a !== "currentUser"),
+        });
+        setHasTicket(false);
+        toast({
+          title: "Ticket cancelled",
+          variant: "destructive",
+        });
+      }
+      // No cancel for paid events
+      return;
+    }
+    // Free event: Confirm ticket instantly
+    if (isTicketFree(event)) {
       setEvent({
         ...event,
         attendees: [...event.attendees, "currentUser"],
       });
+      setHasTicket(true);
+      toast({
+        title: "Ticket Confirmed!",
+        description: "Your ticket for the event is confirmed.",
+        variant: "success",
+      });
+    } else {
+      // Paid event: Redirect to payment page with event ID + price
+      navigate(`/payment?eventId=${event.id}&price=${getTicketPrice(event)}`);
     }
-    setIsAttending(!isAttending);
   };
 
   // Format the date for display
@@ -79,6 +104,9 @@ const EventDetailsPage = () => {
       return event.date;
     }
   };
+
+  const showAsPaid = !isTicketFree(event);
+  const ticketConfirmed = hasTicket && isTicketFree(event);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -166,13 +194,27 @@ const EventDetailsPage = () => {
               <Button
                 size="lg"
                 className={
-                  isAttending
-                    ? "bg-red-500 hover:bg-red-600"
+                  ticketConfirmed
+                    ? "bg-green-500 hover:bg-green-600"
+                    : showAsPaid
+                    ? "bg-blue-500 hover:bg-blue-600"
                     : "bg-event-purple hover:bg-purple-700"
                 }
-                onClick={handleRSVP}
+                onClick={handleBookTicket}
+                disabled={ticketConfirmed}
               >
-                {isAttending ? "Cancel RSVP" : "RSVP to Event"}
+                {ticketConfirmed
+                  ? "Ticket Confirmed"
+                  : showAsPaid
+                  ? hasTicket
+                    ? "Ticket Confirmed"
+                    : "Book Tickets"
+                  : hasTicket
+                  ? "Ticket Confirmed"
+                  : "Book Tickets"}
+                {showAsPaid && !hasTicket && event.price ? (
+                  <span className="ml-2 font-normal text-sm">(${event.price})</span>
+                ) : null}
               </Button>
               <Button variant="outline" size="lg">
                 <Share2 className="h-4 w-4 mr-2" />
@@ -187,3 +229,4 @@ const EventDetailsPage = () => {
 };
 
 export default EventDetailsPage;
+
