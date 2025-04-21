@@ -34,7 +34,7 @@ const SignupPage = () => {
     } else {
       toast({
         title: "Sign up successful!",
-        description: "Check your inbox for a confirmation email.",
+        description: "You can now log in with your credentials.",
       });
       navigate("/login");
     }

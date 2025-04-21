@@ -5,6 +5,11 @@
 
 // Mock user state for development
 const localStorageKey = 'supabase.auth.token';
+const mockUsers = [
+  { email: 'test@example.com', password: 'password123', id: 'user-1' },
+  { email: 'user@test.com', password: 'test123', id: 'user-2' }
+];
+
 const getUserFromStorage = () => {
   try {
     const stored = localStorage.getItem(localStorageKey);
@@ -66,22 +71,46 @@ export const supabase = {
       return {};
     },
     signInWithPassword: async ({ email, password }: { email: string; password: string }) => {
-      // Simulate successful login
-      const user = { email, id: 'mock-id-' + Date.now() };
-      const session = { access_token: 'mock-token-' + Date.now() };
-      setUserInStorage(user, session);
-      return { 
-        data: { user, session }, 
-        error: null 
+      // Check if the user exists and password matches
+      const user = mockUsers.find(u => u.email === email && u.password === password);
+      
+      if (user) {
+        const session = { access_token: 'mock-token-' + Date.now() };
+        setUserInStorage(user, session);
+        return { 
+          data: { user, session }, 
+          error: null 
+        };
+      }
+      
+      // Return error if credentials don't match
+      return {
+        data: { user: null, session: null },
+        error: {
+          message: 'Invalid email or password'
+        }
       };
     },
     signUp: async ({ email, password }: { email: string; password: string }) => {
-      // Simulate successful signup
-      const user = { email, id: 'mock-id-' + Date.now() };
+      // Check if user already exists
+      if (mockUsers.some(u => u.email === email)) {
+        return {
+          data: { user: null, session: null },
+          error: {
+            message: 'User already exists'
+          }
+        };
+      }
+      
+      // Create new user
+      const newUser = { email, password, id: 'mock-id-' + Date.now() };
+      mockUsers.push(newUser);
+      
       const session = { access_token: 'mock-token-' + Date.now() };
-      setUserInStorage(user, session);
+      setUserInStorage(newUser, session);
+      
       return { 
-        data: { user, session }, 
+        data: { user: newUser, session }, 
         error: null 
       };
     }

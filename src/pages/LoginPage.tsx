@@ -86,6 +86,13 @@ const LoginPage = () => {
             Sign up
           </Link>
         </p>
+        <div className="mt-6 p-3 bg-gray-50 rounded-md">
+          <p className="text-sm text-gray-600">
+            <strong>Demo Accounts:</strong><br/>
+            Email: test@example.com<br/>
+            Password: password123
+          </p>
+        </div>
       </div>
     </div>
   );
