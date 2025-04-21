@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -65,7 +64,6 @@ const CreateEventPage = () => {
   const [user, setUser] = useState(null);
   const { toast } = useToast();
 
-  // Check authentication state
   useEffect(() => {
     const checkUser = async () => {
       setIsLoadingUser(true);
@@ -113,15 +111,19 @@ const CreateEventPage = () => {
     },
   });
 
-  // Watch "admissionFree" to control price field
   const admissionFree = form.watch("admissionFree");
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    // Save the event to localStorage
     try {
       const eventData = {
-        ...values,
+        title: values.title,
+        description: values.description,
+        date: values.date,
+        time: values.time,
+        location: values.location,
+        organizer: values.organizer,
         category: values.category as 'business' | 'social' | 'education' | 'other',
+        imageUrl: values.imageUrl,
       };
       saveEvent(eventData);
       
@@ -323,7 +325,6 @@ const CreateEventPage = () => {
                 )}
               />
 
-              {/* Admission Free Checkbox & Price */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                 <FormField
                   control={form.control}
