@@ -50,7 +50,6 @@ const TicketList = ({ userId }: Props) => {
         <TableRow>
           <TableHead>Event</TableHead>
           <TableHead>Date</TableHead>
-          <TableHead>Seat</TableHead>
           <TableHead>Code</TableHead>
         </TableRow>
       </TableHeader>
@@ -59,7 +58,6 @@ const TicketList = ({ userId }: Props) => {
           <TableRow key={ticket.id}>
             <TableCell>{ticket.eventName}</TableCell>
             <TableCell>{ticket.eventDate}</TableCell>
-            <TableCell>{ticket.seat}</TableCell>
             <TableCell className="font-mono">{ticket.code}</TableCell>
           </TableRow>
         ))}
@@ -69,3 +67,4 @@ const TicketList = ({ userId }: Props) => {
 };
 
 export default TicketList;
+
