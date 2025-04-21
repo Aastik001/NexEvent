@@ -20,12 +20,13 @@ const Header = () => {
     fetchUser();
 
     // Listen to auth state changes
-    const { data: listener } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event);
       setUser(session?.user ?? null);
     });
 
     return () => {
-      listener?.subscription.unsubscribe();
+      authListener?.subscription.unsubscribe();
     };
   }, []);
 
@@ -91,4 +92,3 @@ const Header = () => {
 };
 
 export default Header;
-

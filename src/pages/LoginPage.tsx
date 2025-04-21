@@ -18,25 +18,34 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Login failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login successful!",
+        });
+        // Use redirect instead of navigate to ensure page refresh
+        window.location.href = "/";
+      }
+    } catch (error: any) {
+      setLoading(false);
       toast({
-        title: "Login failed",
-        description: error.message,
+        title: "Unexpected error",
+        description: error.message || "Something went wrong during login.",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Login successful!",
-      });
-      // Use redirect instead of navigate to ensure page refresh
-      window.location.href = "/";
     }
   };
 
@@ -86,13 +95,6 @@ const LoginPage = () => {
             Sign up
           </Link>
         </p>
-        <div className="mt-6 p-3 bg-gray-50 rounded-md">
-          <p className="text-sm text-gray-600">
-            <strong>Demo Accounts:</strong><br/>
-            Email: test@example.com<br/>
-            Password: password123
-          </p>
-        </div>
       </div>
     </div>
   );

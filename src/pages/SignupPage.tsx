@@ -23,6 +23,9 @@ const SignupPage = () => {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
       });
 
       setLoading(false);
@@ -40,14 +43,13 @@ const SignupPage = () => {
           
           toast({
             title: "Sign up successful!",
-            description: "You can now log in with your credentials.",
+            description: "Please check your email to confirm your account before logging in.",
           });
           navigate("/login");
         } else {
           toast({
-            title: "Sign up issue",
-            description: "User account created but may require email verification. Please check your email.",
-            variant: "default",
+            title: "Email verification required",
+            description: "A confirmation link has been sent to your email address. Please confirm your email before logging in.",
           });
           navigate("/login");
         }
