@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { mockEvents } from "../data/mockEvents";
 import { useState, useEffect } from "react";
@@ -5,7 +6,6 @@ import type { Event } from "@/types/event";
 import { getEvents } from "@/utils/eventStorage";
 import { useToast } from "@/hooks/use-toast";
 import EventDetailsMain from "@/components/event-details/EventDetailsMain";
-import EventNotFound from "@/components/event-details/EventNotFound";
 import { isTicketFree, getTicketPrice } from "@/components/event-details/eventDetailsHelpers";
 import { saveTicket } from "@/utils/ticketStorage";
 import { supabase } from "@/lib/supabaseClient";
@@ -55,11 +55,20 @@ const EventDetailsPage = () => {
       return;
     }
 
+    if (!event) {
+      toast({
+        title: "Event not found",
+        description: "Cannot book a ticket for an event that doesn't exist.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (hasTicket) {
-      if (isTicketFree(event!)) {
+      if (isTicketFree(event)) {
         setEvent({
-          ...event!,
-          attendees: event!.attendees.filter((a) => a !== "currentUser"),
+          ...event,
+          attendees: event.attendees.filter((a) => a !== "currentUser"),
         });
         setHasTicket(false);
         toast({
@@ -70,16 +79,14 @@ const EventDetailsPage = () => {
       return;
     }
 
-    if (isTicketFree(event!)) {
+    if (isTicketFree(event)) {
       setEvent({
-        ...event!,
-        attendees: [...event!.attendees, "currentUser"],
+        ...event,
+        attendees: [...event.attendees, "currentUser"],
       });
       
-      if (event) {
-        saveTicket(user.id, event.title, event.date);
-        window.dispatchEvent(new Event('ticketsUpdated'));
-      }
+      saveTicket(user.id, event.title, event.date);
+      window.dispatchEvent(new Event('ticketsUpdated'));
       
       setHasTicket(true);
       toast({
@@ -88,7 +95,7 @@ const EventDetailsPage = () => {
         variant: "default",
       });
     } else {
-      navigate(`/payment?eventId=${event!.id}&price=${getTicketPrice(event!)}`);
+      navigate(`/payment?eventId=${event.id}&price=${getTicketPrice(event)}`);
     }
   };
 
