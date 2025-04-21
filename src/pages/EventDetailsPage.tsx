@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { mockEvents } from "../data/mockEvents";
 import { useState, useEffect } from "react";
@@ -7,15 +8,25 @@ import { useToast } from "@/hooks/use-toast";
 import EventDetailsMain from "@/components/event-details/EventDetailsMain";
 import EventNotFound from "@/components/event-details/EventNotFound";
 import { isTicketFree, getTicketPrice } from "@/components/event-details/eventDetailsHelpers";
+import { saveTicket } from "@/utils/ticketStorage";
+import { supabase } from "@/lib/supabaseClient";
 
 const EventDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const [event, setEvent] = useState<Event | undefined>(undefined);
   const [hasTicket, setHasTicket] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Get the current user
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data?.user);
+    };
+    fetchUser();
+
     let foundEvent = mockEvents.find((e) => e.id === id);
 
     if (!foundEvent) {
@@ -35,17 +46,23 @@ const EventDetailsPage = () => {
     }
   }, [id, toast]);
 
-  if (!event) {
-    return <EventNotFound />;
-  }
+  const handleBookTicket = async () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "Please log in to book tickets.",
+        variant: "destructive",
+      });
+      navigate("/login");
+      return;
+    }
 
-  const handleBookTicket = () => {
     if (hasTicket) {
       // Allow cancelling only for free events
-      if (isTicketFree(event)) {
+      if (isTicketFree(event!)) {
         setEvent({
-          ...event,
-          attendees: event.attendees.filter((a) => a !== "currentUser"),
+          ...event!,
+          attendees: event!.attendees.filter((a) => a !== "currentUser"),
         });
         setHasTicket(false);
         toast({
@@ -56,12 +73,23 @@ const EventDetailsPage = () => {
       // No cancel for paid events
       return;
     }
+
     // Free event: Confirm ticket instantly
-    if (isTicketFree(event)) {
+    if (isTicketFree(event!)) {
+      // Update the event attendees
       setEvent({
-        ...event,
-        attendees: [...event.attendees, "currentUser"],
+        ...event!,
+        attendees: [...event!.attendees, "currentUser"],
       });
+      
+      // Save the ticket to storage
+      if (event) {
+        saveTicket(user.id, event.title, event.date);
+        
+        // Dispatch a custom event to notify other components about the ticket update
+        window.dispatchEvent(new Event('ticketsUpdated'));
+      }
+      
       setHasTicket(true);
       toast({
         title: "Ticket Confirmed!",
@@ -70,12 +98,12 @@ const EventDetailsPage = () => {
       });
     } else {
       // Paid event: Redirect to payment page with event ID + price
-      navigate(`/payment?eventId=${event.id}&price=${getTicketPrice(event)}`);
+      navigate(`/payment?eventId=${event!.id}&price=${getTicketPrice(event!)}`);
     }
   };
 
-  const showAsPaid = !isTicketFree(event);
-  const ticketConfirmed = hasTicket && isTicketFree(event);
+  const showAsPaid = event ? !isTicketFree(event) : false;
+  const ticketConfirmed = hasTicket && event ? isTicketFree(event) : false;
 
   return (
     <EventDetailsMain

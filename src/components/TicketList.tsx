@@ -1,34 +1,7 @@
 
 import { Table, TableHeader, TableBody, TableRow, TableCell, TableHead } from "@/components/ui/table";
 import { useEffect, useState } from "react";
-
-// Mocked tickets per user id
-const TICKETS = [
-  {
-    id: "t1",
-    eventName: "Tech Conference 2025",
-    eventDate: "2025-07-15",
-    seat: "A3",
-    userId: "user-1",
-    code: "TCKT-1234715"
-  },
-  {
-    id: "t2",
-    eventName: "Art Expo",
-    eventDate: "2025-06-22",
-    seat: "VIP",
-    userId: "user-1",
-    code: "TCKT-898721"
-  },
-  {
-    id: "t3",
-    eventName: "Food Carnival",
-    eventDate: "2025-08-09",
-    seat: "C10",
-    userId: "user-2",
-    code: "TCKT-55124"
-  },
-];
+import { getTicketsByUser } from "@/utils/ticketStorage";
 
 interface Ticket {
   id: string;
@@ -47,8 +20,24 @@ const TicketList = ({ userId }: Props) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    // Filter the mock tickets for the user
-    setTickets(TICKETS.filter(t => t.userId === userId));
+    // Get tickets from storage instead of the mock data
+    setTickets(getTicketsByUser(userId));
+    
+    // Set up a listener for storage events to update tickets in real-time
+    const handleStorageChange = () => {
+      setTickets(getTicketsByUser(userId));
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // We also need to listen for our own custom event for cases when localStorage
+    // is updated in the same window
+    window.addEventListener('ticketsUpdated', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('ticketsUpdated', handleStorageChange);
+    };
   }, [userId]);
 
   if (tickets.length === 0) {
