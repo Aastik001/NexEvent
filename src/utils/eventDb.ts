@@ -2,25 +2,42 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Event } from "@/types/event";
 import { mockEvents } from "@/data/mockEvents";
+import { v4 as uuidv4 } from "uuid";
+import { addEvent, getStoredEvents, updateStoredEvent, removeStoredEvent } from "@/utils/eventStorage";
 
 export const saveEvent = async (eventData: Omit<Event, "id" | "attendees">): Promise<Event | null> => {
   try {
     await createEventsTableIfNotExists();
     
-    const { data, error } = await supabase
-      .from('events')
-      .insert([{ ...eventData, attendees: [] }])
-      .select()
-      .single();
+    // Try to save to Supabase first
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert([{ ...eventData, attendees: [] }])
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error saving event:', error);
-      throw error;
+      if (error) {
+        // If there's an error with Supabase, throw to trigger the fallback
+        throw error;
+      }
+
+      return data;
+    } catch (supabaseError) {
+      console.error('Supabase operation failed, using local storage:', supabaseError);
+      
+      // Fallback to localStorage
+      const newEvent: Event = {
+        id: uuidv4(),
+        ...eventData,
+        attendees: []
+      };
+      
+      addEvent(newEvent);
+      return newEvent;
     }
-
-    return data;
   } catch (error) {
-    console.error('Database operation failed:', error);
+    console.error('Operation failed:', error);
     throw error;
   }
 };
@@ -29,59 +46,85 @@ export const getEvents = async (): Promise<Event[]> => {
   try {
     await createEventsTableIfNotExists();
 
-    const { data, error } = await supabase
-      .from('events')
-      .select('*');
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*');
 
-    if (error) {
-      console.error('Error fetching events:', error);
-      throw error;
+      if (error) {
+        throw error;
+      }
+
+      return data || [];
+    } catch (supabaseError) {
+      console.error('Supabase fetch failed, using local storage:', supabaseError);
+      
+      // Fallback to local storage
+      const localEvents = getStoredEvents();
+      
+      // If no local events, use mock data and save them to local storage
+      if (localEvents.length === 0) {
+        mockEvents.forEach(event => addEvent(event));
+        return getStoredEvents();
+      }
+      
+      return localEvents;
     }
-
-    return data || [];
   } catch (error) {
     console.error('Database operation failed:', error);
-    return mockEvents;
+    return getStoredEvents().length > 0 ? getStoredEvents() : mockEvents;
   }
 };
 
 export const updateEvent = async (eventId: string, updatedData: Partial<Event>): Promise<Event | null> => {
   try {
-    const { data, error } = await supabase
-      .from('events')
-      .update(updatedData)
-      .eq('id', eventId)
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .update(updatedData)
+        .eq('id', eventId)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error updating event:', error);
-      throw error;
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (supabaseError) {
+      console.error('Supabase update failed, using local storage:', supabaseError);
+      
+      // Fallback to localStorage
+      return updateStoredEvent(eventId, updatedData);
     }
-
-    return data;
   } catch (error) {
     console.error('Database operation failed:', error);
-    throw error;
+    return updateStoredEvent(eventId, updatedData);
   }
 };
 
 export const deleteEvent = async (eventId: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', eventId);
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
 
-    if (error) {
-      console.error('Error deleting event:', error);
-      throw error;
+      if (error) {
+        throw error;
+      }
+
+      return true;
+    } catch (supabaseError) {
+      console.error('Supabase delete failed, using local storage:', supabaseError);
+      
+      // Fallback to localStorage
+      return removeStoredEvent(eventId);
     }
-
-    return true;
   } catch (error) {
     console.error('Database operation failed:', error);
-    throw error;
+    return removeStoredEvent(eventId);
   }
 };
 
@@ -103,7 +146,7 @@ export const createEventsTableIfNotExists = async (): Promise<void> => {
       console.log('Events table does not exist');
       
       // Since we can't create tables directly with the JS client, we need to handle this case
-      console.log('Using mock data as fallback - table creation requires Supabase dashboard');
+      console.log('Using local storage as fallback - table creation requires Supabase dashboard');
       
       // Log a helpful message for the user about table creation
       console.log('To create the events table:');
@@ -128,7 +171,7 @@ export const createEventsTableIfNotExists = async (): Promise<void> => {
         );
       `);
       
-      // For development purposes, we'll fall back to mock data
+      // For development purposes, we'll fall back to local storage
       return;
     } else {
       console.error('Unknown error checking events table:', checkError);
@@ -149,18 +192,27 @@ export const createInitialEvents = async (): Promise<void> => {
     }
     
     console.log('Inserting mock events into database');
-    const { error } = await supabase
-      .from('events')
-      .insert(mockEvents);
+    try {
+      const { error } = await supabase
+        .from('events')
+        .insert(mockEvents);
 
-    if (error) {
-      console.error('Error creating initial events:', error);
-      throw error;
+      if (error) {
+        throw error;
+      }
+
+      console.log('Initial events created successfully');
+    } catch (supabaseError) {
+      console.error('Failed to create initial events in Supabase, using local storage:', supabaseError);
+      
+      // Fallback to local storage
+      mockEvents.forEach(event => addEvent(event));
     }
-
-    console.log('Initial events created successfully');
   } catch (error) {
     console.error('Failed to create initial events:', error);
+    
+    // Final fallback
+    mockEvents.forEach(event => addEvent(event));
   }
 };
 
@@ -175,6 +227,9 @@ export const checkEventsExist = async (): Promise<boolean> => {
     return data && data.length > 0;
   } catch (error) {
     console.error('Error checking events:', error);
-    return false;
+    
+    // Check local storage instead
+    const localEvents = getStoredEvents();
+    return localEvents && localEvents.length > 0;
   }
 };
