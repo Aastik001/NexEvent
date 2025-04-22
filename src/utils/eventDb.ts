@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabaseClient";
 import { Event } from "@/types/event";
 import { mockEvents } from "@/data/mockEvents";
@@ -93,47 +92,45 @@ export const createEventsTableIfNotExists = async (): Promise<void> => {
       .limit(1)
       .maybeSingle();
     
-    if (!checkError) return;
+    if (!checkError) {
+      console.log('Events table already exists');
+      return;
+    }
     
     if (checkError.code === '42P01') {
-      // Table doesn't exist, try to create it using rpc
-      try {
-        const { error: createError } = await supabase.rpc('create_events_table');
-        
-        if (createError) {
-          // If the RPC method fails, try direct SQL
-          // Note: This requires appropriate permissions and may not work in all environments
-          console.log("RPC failed, trying direct SQL");
-          const { error } = await supabase.rpc('exec', { 
-            query: `
-              CREATE TABLE IF NOT EXISTS public.events (
-                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                title TEXT NOT NULL,
-                description TEXT NOT NULL,
-                date TEXT NOT NULL,
-                time TEXT NOT NULL,
-                location TEXT NOT NULL,
-                organizer TEXT NOT NULL,
-                imageUrl TEXT,
-                category TEXT NOT NULL,
-                price NUMERIC DEFAULT 0,
-                attendees JSONB DEFAULT '[]'::jsonb,
-                admissionFree BOOLEAN DEFAULT false,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-              );
-            `
-          });
-          
-          if (error) {
-            console.error('Failed to create events table:', error);
-            throw error;
-          }
-        }
-      } catch (err) {
-        console.error('Error creating events table:', err);
-      }
+      // Table doesn't exist, create it using SQL
+      console.log('Creating events table using SQL');
       
-      await createInitialEvents();
+      const createTableSQL = `
+        CREATE TABLE IF NOT EXISTS events (
+          id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          date TEXT NOT NULL,
+          time TEXT NOT NULL,
+          location TEXT NOT NULL,
+          organizer TEXT NOT NULL,
+          imageUrl TEXT,
+          category TEXT NOT NULL,
+          price NUMERIC DEFAULT 0,
+          attendees JSONB DEFAULT '[]'::jsonb,
+          admissionFree BOOLEAN DEFAULT false,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+        );
+      `;
+      
+      const { error } = await supabase.sql(createTableSQL);
+      
+      if (error) {
+        console.error('Failed to create events table with SQL:', error);
+        
+        // If sql approach fails, suggest the user to create the table manually
+        console.log('Please create the events table manually in your Supabase dashboard');
+        return;
+      } else {
+        console.log('Events table created successfully');
+        await createInitialEvents();
+      }
     } else {
       console.error('Unknown error checking events table:', checkError);
     }
@@ -152,6 +149,7 @@ export const createInitialEvents = async (): Promise<void> => {
       return;
     }
     
+    console.log('Inserting mock events into database');
     const { error } = await supabase
       .from('events')
       .insert(mockEvents);
