@@ -4,7 +4,7 @@ import EventCard from "../components/EventCard";
 import CategoryFilter from "../components/CategoryFilter";
 import { Calendar, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getEvents, createEventsTableIfNotExists } from "@/utils/eventDb";
+import { getEvents } from "@/utils/eventDb";
 import { Event } from "../types/event";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -17,10 +17,7 @@ const EventsPage = () => {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      // First ensure the table exists, this will also create initial events if needed
-      await createEventsTableIfNotExists();
-      
-      // Then fetch events
+      // Fetch events (which will return mock events as fallback if DB fetch fails)
       const eventsData = await getEvents();
       
       if (eventsData.length > 0) {
