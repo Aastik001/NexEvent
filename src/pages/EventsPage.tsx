@@ -5,25 +5,22 @@ import { mockEvents } from "../data/mockEvents";
 import CategoryFilter from "../components/CategoryFilter";
 import { Calendar, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getEvents } from "@/utils/eventStorage";
+import { getEvents } from "@/utils/eventDb";
 import { Event } from "../types/event";
+import { useQuery } from "@tanstack/react-query";
 
 const EventsPage = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [allEvents, setAllEvents] = useState<Event[]>([]);
 
-  // Combine mock events and user-created events
-  useEffect(() => {
-    const userEvents = getEvents();
-    setAllEvents([...mockEvents, ...userEvents]);
-  }, []);
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['events'],
+    queryFn: getEvents
+  });
 
-  const filteredEvents = allEvents.filter(event => {
-    // Apply category filter
+  const filteredEvents = events.filter(event => {
     const matchesCategory = !categoryFilter || event.category === categoryFilter;
     
-    // Apply search filter (case insensitive)
     const matchesSearch = !searchQuery || 
       event.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       event.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -31,6 +28,14 @@ const EventsPage = () => {
     
     return matchesCategory && matchesSearch;
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <span className="text-xl text-gray-500">Loading events…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-8 px-4">

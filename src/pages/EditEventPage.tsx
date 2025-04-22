@@ -2,17 +2,29 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Event } from "@/types/event";
-import { getEvents, updateEvent } from "@/utils/eventStorage";
+import { updateEvent } from "@/utils/eventDb";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import CreateEventForm from "@/components/CreateEventForm";
+import { useQuery } from "@tanstack/react-query";
 
 const EditEventPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<Event | null>(null);
   const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const { data: event, isLoading } = useQuery({
+    queryKey: ['event', id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', id)
+        .single();
+      return data;
+    },
+  });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -20,21 +32,7 @@ const EditEventPage = () => {
       setUser(data?.user);
     };
     fetchUser();
-
-    if (id) {
-      const userEvents = getEvents();
-      const foundEvent = userEvents.find(e => e.id === id);
-      if (foundEvent) {
-        setEvent(foundEvent);
-      } else {
-        navigate('/');
-        toast({
-          title: "Event not found",
-          variant: "destructive",
-        });
-      }
-    }
-  }, [id, navigate, toast]);
+  }, []);
 
   useEffect(() => {
     if (event && user && event.organizer !== user.email) {
@@ -47,17 +45,17 @@ const EditEventPage = () => {
     }
   }, [event, user, navigate, toast]);
 
-  const handleSubmit = (updatedEventData: Partial<Event>) => {
+  const handleSubmit = async (updatedEventData: Partial<Event>) => {
     if (!id) return;
     
-    const updated = updateEvent(id, updatedEventData);
-    if (updated) {
+    try {
+      await updateEvent(id, updatedEventData);
       toast({
         title: "Event updated",
         description: "Your event has been successfully updated.",
       });
       navigate(`/event/${id}`);
-    } else {
+    } catch (error) {
       toast({
         title: "Error",
         description: "Could not update the event.",
@@ -65,6 +63,14 @@ const EditEventPage = () => {
       });
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <span className="text-xl text-gray-500">Loading event details…</span>
+      </div>
+    );
+  }
 
   if (!event) return null;
 

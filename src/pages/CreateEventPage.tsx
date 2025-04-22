@@ -1,9 +1,8 @@
-
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/hooks/use-toast";
-import { saveEvent } from "@/utils/eventStorage";
+import { saveEvent } from "@/utils/eventDb";
 import CreateEventForm from "@/components/CreateEventForm";
 
 const CreateEventPage = () => {
@@ -43,14 +42,14 @@ const CreateEventPage = () => {
     checkUser();
   }, [navigate, toast]);
 
-  const handleSubmit = (values) => {
+  const handleSubmit = async (values) => {
     try {
       const eventData = {
         ...values,
         organizer: user.email,
       };
       
-      saveEvent(eventData);
+      await saveEvent(eventData);
       
       toast({
         title: "Event Created!",
