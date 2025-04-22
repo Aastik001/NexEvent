@@ -2,7 +2,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Event } from "@/types/event";
-import { updateEvent } from "@/utils/eventDb";
+import { updateEvent, createEventsTableIfNotExists } from "@/utils/eventDb";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import CreateEventForm from "@/components/CreateEventForm";
@@ -19,6 +19,9 @@ const EditEventPage = () => {
     queryKey: ['event', id],
     queryFn: async () => {
       try {
+        // Ensure the events table exists
+        await createEventsTableIfNotExists();
+        
         const { data } = await supabase
           .from('events')
           .select('*')

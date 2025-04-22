@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import EventCard from "../components/EventCard";
 import CategoryFilter from "../components/CategoryFilter";
 import { Calendar, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getEvents, checkEventsExist, createInitialEvents } from "@/utils/eventDb";
+import { getEvents, createEventsTableIfNotExists } from "@/utils/eventDb";
 import { Event } from "../types/event";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -16,16 +17,20 @@ const EventsPage = () => {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      // Check if events exist, if not create initial events
-      const hasEvents = await checkEventsExist();
-      if (!hasEvents) {
-        await createInitialEvents();
+      // First ensure the table exists, this will also create initial events if needed
+      await createEventsTableIfNotExists();
+      
+      // Then fetch events
+      const eventsData = await getEvents();
+      
+      if (eventsData.length > 0) {
         toast({
           title: "Welcome!",
-          description: "Initial events have been created.",
+          description: "Event data loaded successfully.",
         });
       }
-      return await getEvents();
+      
+      return eventsData;
     }
   });
 
