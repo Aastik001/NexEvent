@@ -10,7 +10,7 @@ export const mockEvents: Event[] = [
     time: '09:00',
     location: 'Convention Center, Downtown',
     organizer: 'Tech Events Inc.',
-    imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?q=80&w=2070',
+    imageUrl: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=2070',
     attendees: ['user1', 'user2', 'user3'],
     category: 'business',
   },
@@ -50,4 +50,16 @@ export const mockEvents: Event[] = [
     attendees: ['user3', 'user4', 'user5'],
     category: 'social',
   },
+  {
+    id: '5',
+    title: 'AI and Machine Learning Summit',
+    description: 'Explore cutting-edge AI technologies and network with industry experts.',
+    date: '2025-09-20',
+    time: '10:00',
+    location: 'Tech Innovation Center',
+    organizer: 'AI Innovations LLC',
+    imageUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070',
+    attendees: ['user1', 'user2', 'user4'],
+    category: 'business',
+  }
 ];
