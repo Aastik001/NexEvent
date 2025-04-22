@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import CreateEventForm from "@/components/CreateEventForm";
 import { useQuery } from "@tanstack/react-query";
+import { mockEvents } from "@/data/mockEvents";
 
 const EditEventPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,12 +18,20 @@ const EditEventPage = () => {
   const { data: event, isLoading } = useQuery({
     queryKey: ['event', id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
-        .single();
-      return data;
+      try {
+        const { data } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', id)
+          .single();
+        return data;
+      } catch (error) {
+        console.error("Error fetching event from database:", error);
+        // Fallback to mock data if database fetch fails
+        const mockEvent = mockEvents.find(event => event.id === id);
+        if (mockEvent) return mockEvent;
+        throw error;
+      }
     },
   });
 
@@ -58,9 +67,11 @@ const EditEventPage = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Could not update the event.",
+        description: "Could not update the event. Using local demo mode.",
         variant: "destructive",
       });
+      // For demo purposes, navigate back even if there was an error
+      navigate(`/event/${id}`);
     }
   };
 

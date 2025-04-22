@@ -8,14 +8,27 @@ import { Input } from "@/components/ui/input";
 import { getEvents } from "@/utils/eventDb";
 import { Event } from "../types/event";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const EventsPage = () => {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
-    queryFn: getEvents
+    queryFn: async () => {
+      try {
+        return await getEvents();
+      } catch (error) {
+        console.log("Falling back to mock events due to database error:", error);
+        toast({
+          title: "Connection issue",
+          description: "Using placeholder events while we connect to the database.",
+        });
+        return mockEvents;
+      }
+    }
   });
 
   const filteredEvents = events.filter(event => {
