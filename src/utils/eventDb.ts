@@ -1,6 +1,6 @@
-
 import { supabase } from "@/lib/supabaseClient";
 import { Event } from "@/types/event";
+import { mockEvents } from "@/data/mockEvents";
 
 export const createEventsTableIfNotExists = async (): Promise<void> => {
   try {
@@ -74,3 +74,19 @@ export const deleteEvent = async (eventId: string): Promise<boolean> => {
   if (error) throw error;
   return true;
 };
+
+export const populateEventsTable = async (): Promise<void> => {
+  const { error } = await supabase
+    .from('events')
+    .upsert(mockEvents, { 
+      onConflict: 'id'  // This ensures we don't duplicate events if they already exist
+    });
+
+  if (error) {
+    console.error("Error populating events table:", error);
+    throw error;
+  }
+};
+
+// Call this function immediately to populate the table
+populateEventsTable().catch(console.error);
