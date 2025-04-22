@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import EventCard from "../components/EventCard";
 import CategoryFilter from "../components/CategoryFilter";
@@ -28,7 +27,10 @@ const EventsPage = () => {
       }
       
       return eventsData;
-    }
+    },
+    // This ensures the events list gets refreshed when we return to this page
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   const filteredEvents = events.filter(event => {
