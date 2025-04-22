@@ -1,11 +1,9 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import EventCard from "../components/EventCard";
-import { mockEvents } from "../data/mockEvents";
 import CategoryFilter from "../components/CategoryFilter";
 import { Calendar, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { getEvents } from "@/utils/eventDb";
+import { getEvents, checkEventsExist, createInitialEvents } from "@/utils/eventDb";
 import { Event } from "../types/event";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -18,16 +16,16 @@ const EventsPage = () => {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      try {
-        return await getEvents();
-      } catch (error) {
-        console.log("Falling back to mock events due to database error:", error);
+      // Check if events exist, if not create initial events
+      const hasEvents = await checkEventsExist();
+      if (!hasEvents) {
+        await createInitialEvents();
         toast({
-          title: "Connection issue",
-          description: "Using placeholder events while we connect to the database.",
+          title: "Welcome!",
+          description: "Initial events have been created.",
         });
-        return mockEvents;
       }
+      return await getEvents();
     }
   });
 
