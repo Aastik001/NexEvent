@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabaseClient";
 import { Event } from "@/types/event";
 import { mockEvents } from "@/data/mockEvents";
@@ -95,33 +96,41 @@ export const createEventsTableIfNotExists = async (): Promise<void> => {
     if (!checkError) return;
     
     if (checkError.code === '42P01') {
-      const { error: createError } = await supabase.rpc('create_events_table');
-      
-      if (createError) {
-        const { error } = await supabase.supabase.rpc('exec', { 
-          query: `
-            CREATE TABLE IF NOT EXISTS public.events (
-              id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-              title TEXT NOT NULL,
-              description TEXT NOT NULL,
-              date TEXT NOT NULL,
-              time TEXT NOT NULL,
-              location TEXT NOT NULL,
-              organizer TEXT NOT NULL,
-              imageUrl TEXT,
-              category TEXT NOT NULL,
-              price NUMERIC DEFAULT 0,
-              attendees JSONB DEFAULT '[]'::jsonb,
-              admissionFree BOOLEAN DEFAULT false,
-              created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-            );
-          `
-        });
+      // Table doesn't exist, try to create it using rpc
+      try {
+        const { error: createError } = await supabase.rpc('create_events_table');
         
-        if (error) {
-          console.error('Failed to create events table:', error);
-          throw error;
+        if (createError) {
+          // If the RPC method fails, try direct SQL
+          // Note: This requires appropriate permissions and may not work in all environments
+          console.log("RPC failed, trying direct SQL");
+          const { error } = await supabase.rpc('exec', { 
+            query: `
+              CREATE TABLE IF NOT EXISTS public.events (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                location TEXT NOT NULL,
+                organizer TEXT NOT NULL,
+                imageUrl TEXT,
+                category TEXT NOT NULL,
+                price NUMERIC DEFAULT 0,
+                attendees JSONB DEFAULT '[]'::jsonb,
+                admissionFree BOOLEAN DEFAULT false,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+              );
+            `
+          });
+          
+          if (error) {
+            console.error('Failed to create events table:', error);
+            throw error;
+          }
         }
+      } catch (err) {
+        console.error('Error creating events table:', err);
       }
       
       await createInitialEvents();
@@ -135,6 +144,14 @@ export const createEventsTableIfNotExists = async (): Promise<void> => {
 
 export const createInitialEvents = async (): Promise<void> => {
   try {
+    // First check if events already exist
+    const eventsExist = await checkEventsExist();
+    
+    if (eventsExist) {
+      console.log('Events already exist, skipping initial creation');
+      return;
+    }
+    
     const { error } = await supabase
       .from('events')
       .insert(mockEvents);
