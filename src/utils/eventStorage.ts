@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const EVENTS_STORAGE_KEY = "user_created_events";
 
+// Original function (kept for backward compatibility)
 export const saveEvent = (eventData: Omit<Event, "id" | "attendees">): Event => {
   // Create a complete event object with id and empty attendees array
   const newEvent: Event = {
@@ -24,6 +25,14 @@ export const saveEvent = (eventData: Omit<Event, "id" | "attendees">): Event => 
   return newEvent;
 };
 
+// Add new function that matches the import in eventDb.ts
+export const addEvent = (event: Event): Event => {
+  const existingEvents = getEvents();
+  existingEvents.push(event);
+  localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(existingEvents));
+  return event;
+};
+
 export const getEvents = (): Event[] => {
   try {
     const eventsJson = localStorage.getItem(EVENTS_STORAGE_KEY);
@@ -35,6 +44,9 @@ export const getEvents = (): Event[] => {
   }
   return [];
 };
+
+// Add alias for getStoredEvents to match the import in eventDb.ts
+export const getStoredEvents = getEvents;
 
 export const updateEvent = (eventId: string, updatedData: Partial<Event>): Event | null => {
   const events = getEvents();
@@ -51,6 +63,9 @@ export const updateEvent = (eventId: string, updatedData: Partial<Event>): Event
   return events[eventIndex];
 };
 
+// Add alias for updateStoredEvent to match the import in eventDb.ts
+export const updateStoredEvent = updateEvent;
+
 export const deleteEvent = (eventId: string): boolean => {
   const events = getEvents();
   const filteredEvents = events.filter(e => e.id !== eventId);
@@ -60,3 +75,6 @@ export const deleteEvent = (eventId: string): boolean => {
   localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(filteredEvents));
   return true;
 };
+
+// Add alias for removeStoredEvent to match the import in eventDb.ts
+export const removeStoredEvent = deleteEvent;
