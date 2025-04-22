@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabaseClient";
 import { Event } from "@/types/event";
 import { mockEvents } from "@/data/mockEvents";
@@ -98,10 +99,18 @@ export const createEventsTableIfNotExists = async (): Promise<void> => {
     }
     
     if (checkError.code === '42P01') {
-      // Table doesn't exist, create it using SQL
-      console.log('Creating events table using SQL');
+      // Table doesn't exist, but we can't create it directly with the Supabase JS client
+      console.log('Events table does not exist');
       
-      const createTableSQL = `
+      // Since we can't create tables directly with the JS client, we need to handle this case
+      console.log('Using mock data as fallback - table creation requires Supabase dashboard');
+      
+      // Log a helpful message for the user about table creation
+      console.log('To create the events table:');
+      console.log('1. Go to your Supabase dashboard');
+      console.log('2. Navigate to the SQL Editor');
+      console.log('3. Run the following SQL:');
+      console.log(`
         CREATE TABLE IF NOT EXISTS events (
           id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
           title TEXT NOT NULL,
@@ -117,20 +126,10 @@ export const createEventsTableIfNotExists = async (): Promise<void> => {
           admissionFree BOOLEAN DEFAULT false,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
         );
-      `;
+      `);
       
-      const { error } = await supabase.sql(createTableSQL);
-      
-      if (error) {
-        console.error('Failed to create events table with SQL:', error);
-        
-        // If sql approach fails, suggest the user to create the table manually
-        console.log('Please create the events table manually in your Supabase dashboard');
-        return;
-      } else {
-        console.log('Events table created successfully');
-        await createInitialEvents();
-      }
+      // For development purposes, we'll fall back to mock data
+      return;
     } else {
       console.error('Unknown error checking events table:', checkError);
     }
