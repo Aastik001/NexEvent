@@ -35,3 +35,28 @@ export const getEvents = (): Event[] => {
   }
   return [];
 };
+
+export const updateEvent = (eventId: string, updatedData: Partial<Event>): Event | null => {
+  const events = getEvents();
+  const eventIndex = events.findIndex(e => e.id === eventId);
+  
+  if (eventIndex === -1) return null;
+  
+  events[eventIndex] = {
+    ...events[eventIndex],
+    ...updatedData
+  };
+  
+  localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(events));
+  return events[eventIndex];
+};
+
+export const deleteEvent = (eventId: string): boolean => {
+  const events = getEvents();
+  const filteredEvents = events.filter(e => e.id !== eventId);
+  
+  if (filteredEvents.length === events.length) return false;
+  
+  localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(filteredEvents));
+  return true;
+};

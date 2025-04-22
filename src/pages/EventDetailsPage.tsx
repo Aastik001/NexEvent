@@ -3,12 +3,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { mockEvents } from "../data/mockEvents";
 import { useState, useEffect } from "react";
 import type { Event } from "@/types/event";
-import { getEvents } from "@/utils/eventStorage";
+import { getEvents, deleteEvent } from "@/utils/eventStorage";
 import { useToast } from "@/hooks/use-toast";
 import EventDetailsMain from "@/components/event-details/EventDetailsMain";
 import { isTicketFree, getTicketPrice } from "@/components/event-details/eventDetailsHelpers";
 import { saveTicket } from "@/utils/ticketStorage";
 import { supabase } from "@/lib/supabaseClient";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Edit, Trash2 } from "lucide-react";
 
 const EventDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -99,17 +102,70 @@ const EventDetailsPage = () => {
     }
   };
 
+  const handleDeleteEvent = () => {
+    if (!event?.id) return;
+    
+    if (deleteEvent(event.id)) {
+      toast({
+        title: "Event deleted",
+        description: "The event has been successfully deleted.",
+      });
+      navigate('/');
+    } else {
+      toast({
+        title: "Error",
+        description: "Could not delete the event.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditEvent = () => {
+    navigate(`/edit-event/${event?.id}`);
+  };
+
+  const isEventCreator = user?.email === event?.organizer;
   const showAsPaid = event ? !isTicketFree(event) : false;
   const ticketConfirmed = hasTicket && event ? isTicketFree(event) : false;
 
   return (
-    <EventDetailsMain
-      event={event}
-      hasTicket={hasTicket}
-      ticketConfirmed={ticketConfirmed}
-      showAsPaid={showAsPaid}
-      onBookTicket={handleBookTicket}
-    />
+    <div>
+      {isEventCreator && (
+        <div className="container max-w-2xl mx-auto pt-4 px-4 flex justify-end gap-2">
+          <Button variant="outline" onClick={handleEditEvent}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Event
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Event
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the event.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteEvent}>Delete</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )}
+      <EventDetailsMain
+        event={event}
+        hasTicket={hasTicket}
+        ticketConfirmed={ticketConfirmed}
+        showAsPaid={showAsPaid}
+        onBookTicket={handleBookTicket}
+      />
+    </div>
   );
 };
 
