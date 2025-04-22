@@ -2,6 +2,37 @@
 import { supabase } from "@/lib/supabaseClient";
 import { Event } from "@/types/event";
 
+export const createEventsTableIfNotExists = async (): Promise<void> => {
+  try {
+    // Check if events table exists
+    const { error: checkError } = await supabase
+      .from('events')
+      .select('id')
+      .limit(1);
+
+    // If we get a specific error about the relation not existing, create the table
+    if (checkError && checkError.message && checkError.message.includes("relation \"public.events\" does not exist")) {
+      console.log("Events table doesn't exist. Creating it now...");
+      
+      // Execute SQL to create the events table
+      const { error: createError } = await supabase.rpc('create_events_table');
+      
+      if (createError) {
+        console.error("Error creating events table:", createError);
+        throw createError;
+      }
+      
+      console.log("Events table created successfully");
+    } else if (checkError) {
+      console.error("Error checking for events table:", checkError);
+      throw checkError;
+    }
+  } catch (error) {
+    console.error("Error in createEventsTableIfNotExists:", error);
+    throw error;
+  }
+};
+
 export const saveEvent = async (eventData: Omit<Event, "id" | "attendees">): Promise<Event | null> => {
   const { data, error } = await supabase
     .from('events')

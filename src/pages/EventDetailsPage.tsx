@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { mockEvents } from "../data/mockEvents";
 import { useState, useEffect } from "react";
 import type { Event } from "@/types/event";
-import { getEvents, deleteEvent } from "@/utils/eventStorage";
 import { useToast } from "@/hooks/use-toast";
 import EventDetailsMain from "@/components/event-details/EventDetailsMain";
 import { isTicketFree, getTicketPrice } from "@/components/event-details/eventDetailsHelpers";
@@ -12,6 +11,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2 } from "lucide-react";
+import { deleteEvent } from "@/utils/eventDb";
 
 const EventDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,24 +28,57 @@ const EventDetailsPage = () => {
     };
     fetchUser();
 
-    let foundEvent = mockEvents.find((e) => e.id === id);
+    const fetchEvent = async () => {
+      if (!id) return;
 
-    if (!foundEvent) {
-      const userEvents = getEvents();
-      foundEvent = userEvents.find((e) => e.id === id);
-    }
+      try {
+        // Try to fetch from Supabase
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .eq('id', id)
+          .single();
 
-    if (foundEvent) {
-      setEvent(foundEvent);
-      setHasTicket(foundEvent.attendees.includes("currentUser"));
-    } else {
-      toast({
-        title: "Event not found",
-        description: "The event you're looking for couldn't be found.",
-        variant: "destructive",
-      });
-    }
-  }, [id, toast]);
+        if (!error && data) {
+          setEvent(data);
+          setHasTicket(data.attendees.includes(user?.id || "currentUser"));
+          return;
+        }
+
+        // If not found in Supabase, check mock events
+        let foundEvent = mockEvents.find((e) => e.id === id);
+
+        if (foundEvent) {
+          setEvent(foundEvent);
+          setHasTicket(foundEvent.attendees.includes(user?.id || "currentUser"));
+        } else {
+          toast({
+            title: "Event not found",
+            description: "The event you're looking for couldn't be found.",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching event:", error);
+        
+        // Try mock events as fallback
+        let foundEvent = mockEvents.find((e) => e.id === id);
+        
+        if (foundEvent) {
+          setEvent(foundEvent);
+          setHasTicket(foundEvent.attendees.includes(user?.id || "currentUser"));
+        } else {
+          toast({
+            title: "Error loading event",
+            description: "There was a problem loading the event details.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    fetchEvent();
+  }, [id, toast, user]);
 
   const handleBookTicket = async () => {
     if (!user) {
@@ -102,16 +135,18 @@ const EventDetailsPage = () => {
     }
   };
 
-  const handleDeleteEvent = () => {
+  const handleDeleteEvent = async () => {
     if (!event?.id) return;
     
-    if (deleteEvent(event.id)) {
+    try {
+      await deleteEvent(event.id);
       toast({
         title: "Event deleted",
         description: "The event has been successfully deleted.",
       });
       navigate('/');
-    } else {
+    } catch (error) {
+      console.error("Error deleting event:", error);
       toast({
         title: "Error",
         description: "Could not delete the event.",

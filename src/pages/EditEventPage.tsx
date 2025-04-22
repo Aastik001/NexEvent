@@ -8,7 +8,6 @@ import { supabase } from "@/lib/supabaseClient";
 import CreateEventForm from "@/components/CreateEventForm";
 import { useQuery } from "@tanstack/react-query";
 import { mockEvents } from "@/data/mockEvents";
-import { getStoredEvents } from "@/utils/eventStorage";
 
 const EditEventPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -36,14 +35,6 @@ const EditEventPage = () => {
         return data;
       } catch (error) {
         console.error("Error fetching event from database:", error);
-        
-        // Try local storage
-        const localEvents = getStoredEvents();
-        const localEvent = localEvents.find(event => event.id === id);
-        
-        if (localEvent) {
-          return localEvent;
-        }
         
         // Fallback to mock data
         const mockEvent = mockEvents.find(event => event.id === id);
@@ -92,11 +83,10 @@ const EditEventPage = () => {
     } catch (error) {
       console.error("Update error:", error);
       toast({
-        title: "Update Saved Locally",
-        description: "Event updated in local storage due to database connection issue.",
+        title: "Error Updating Event",
+        description: "There was an issue updating your event.",
+        variant: "destructive",
       });
-      // Still navigate back as the local update should have worked
-      navigate(`/event/${id}`);
     }
   };
 
