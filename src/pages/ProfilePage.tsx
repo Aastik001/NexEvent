@@ -2,12 +2,12 @@
 import { useEffect, useState } from "react";
 import ProfileForm from "@/components/ProfileForm";
 import TicketList from "@/components/TicketList";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, formatUser, type SupabaseUser } from "@/lib/supabaseClient";
 import { LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ProfilePage = () => {
-  const [user, setUser] = useState<{ email: string; id: string } | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,7 +15,7 @@ const ProfilePage = () => {
     const fetchUser = async () => {
       setLoading(true);
       const { data } = await supabase.auth.getUser();
-      setUser(data?.user ?? null);
+      setUser(formatUser(data?.user));
       setLoading(false);
     };
     fetchUser();

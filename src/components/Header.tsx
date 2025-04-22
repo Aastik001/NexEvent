@@ -3,10 +3,10 @@ import { CalendarDays, Plus, User, LogIn, UserPlus, LogOut } from "lucide-react"
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase, formatUser, type SupabaseUser } from "@/lib/supabaseClient";
 
 const Header = () => {
-  const [user, setUser] = useState<null | { email: string; id?: string }>(null);
+  const [user, setUser] = useState<null | SupabaseUser>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,7 +14,7 @@ const Header = () => {
     const fetchUser = async () => {
       setLoading(true);
       const { data } = await supabase.auth.getUser();
-      setUser(data?.user ?? null);
+      setUser(formatUser(data?.user));
       setLoading(false);
     };
     fetchUser();
@@ -22,7 +22,7 @@ const Header = () => {
     // Listen to auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event);
-      setUser(session?.user ?? null);
+      setUser(formatUser(session?.user));
     });
 
     return () => {
