@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,9 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const location = useLocation();
+  const returnTo = (location.state as any)?.returnTo || '/';
+  
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,8 +27,6 @@ const LoginPage = () => {
         password,
       });
 
-      setLoading(false);
-
       if (error) {
         toast({
           title: "Login failed",
@@ -36,16 +37,13 @@ const LoginPage = () => {
         toast({
           title: "Login successful!",
         });
-        // Use redirect instead of navigate to ensure page refresh
-        window.location.href = "/";
+        // Redirect to the return URL instead of root
+        window.location.href = returnTo;
       }
     } catch (error: any) {
+      // ...existing error handling...
+    } finally {
       setLoading(false);
-      toast({
-        title: "Unexpected error",
-        description: error.message || "Something went wrong during login.",
-        variant: "destructive",
-      });
     }
   };
 

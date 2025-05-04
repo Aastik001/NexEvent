@@ -55,7 +55,7 @@ const EditEventPage = () => {
   }, []);
 
   useEffect(() => {
-    if (event && user && event.organizer !== user.email) {
+    if (event && user && event.creator_id !== user.id) {
       navigate('/');
       toast({
         title: "Unauthorized",
@@ -65,16 +65,38 @@ const EditEventPage = () => {
     }
   }, [event, user, navigate, toast]);
 
+  useEffect(() => {
+    if (event) {
+      console.log("EditEventPage: loaded event object:", event);
+    }
+  }, [event]);
+
   const handleSubmit = async (updatedEventData: Partial<Event>) => {
     if (!id) return;
-    
+    console.log("EditEventPage: id before updateEvent:", id);
+    // Only allow updatable fields
+    const allowedFields = [
+      'title',
+      'description',
+      'date',
+      'time',
+      'location',
+      'category',
+      'price',
+      'image_url',
+      'admissionfree'
+    ];
+    const sanitizedData = Object.fromEntries(
+      Object.entries(updatedEventData).filter(([key]) => allowedFields.includes(key))
+    );
+    console.log("EditEventPage: sanitizedData before updateEvent:", sanitizedData);
     try {
-      const updated = await updateEvent(id, updatedEventData);
-      
+      const updated = await updateEvent(id, sanitizedData, user.id);
+  
       if (!updated) {
         throw new Error("Failed to update event");
       }
-      
+  
       toast({
         title: "Event updated",
         description: "Your event has been successfully updated.",

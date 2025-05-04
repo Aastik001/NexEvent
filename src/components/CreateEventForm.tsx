@@ -74,7 +74,7 @@ const CreateEventForm = ({ initialData, onSubmit }: CreateEventFormProps) => {
       location: initialData?.location || "",
       organizer: initialData?.organizer || "",
       category: (initialData?.category as "business" | "social" | "education" | "other") || "social",
-      imageUrl: initialData?.imageUrl || "",
+      imageUrl: initialData?.image_url || "",
       admissionFree: initialData?.price === 0 || initialData?.price === undefined,
       price: initialData?.price || 0,
     },

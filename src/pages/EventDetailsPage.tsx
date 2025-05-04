@@ -1,205 +1,319 @@
-
 import { useParams, useNavigate } from "react-router-dom";
-import { mockEvents } from "../data/mockEvents";
-import { useState, useEffect } from "react";
-import type { Event } from "@/types/event";
-import { useToast } from "@/hooks/use-toast";
-import EventDetailsMain from "@/components/event-details/EventDetailsMain";
-import { isTicketFree, getTicketPrice } from "@/components/event-details/eventDetailsHelpers";
-import { saveTicket } from "@/utils/ticketStorage";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2 } from "lucide-react";
-import { deleteEvent } from "@/utils/eventDb";
+import EventDetailsHeader from "@/components/event-details/EventDetailsHeader";
+import EventDetailsAbout from "@/components/event-details/EventDetailsAbout";
+import { Event } from "@/types/event";
+import { Plus, Minus, Edit, Trash2 } from "lucide-react";
+import { useStripe } from '@stripe/react-stripe-js';
+import { createCheckoutSession } from '@/api/stripe';
+import { deleteEvent } from '@/utils/eventDb';
 
 const EventDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
-  const [event, setEvent] = useState<Event | undefined>(undefined);
-  const [hasTicket, setHasTicket] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [hasTicket, setHasTicket] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [isBooking, setIsBooking] = useState(false);
+  const [ticketQuantity, setTicketQuantity] = useState(1);
+  const stripe = useStripe();
+  const [isCreator, setIsCreator] = useState(false);
 
+  // Combined fetch effect
+  
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data?.user);
-    };
-    fetchUser();
+    if (event && user) {
+      setIsCreator(event.creator_id === user.id);
+      console.log('Creator check:', { 
+        eventCreatorId: event.creator_id, 
+        userId: user.id, 
+        isCreator: event.creator_id === user.id 
+      });
+    }
+  }, [event, user]);
+  
+  const handleEditClick = () => {
+    navigate(`/event/${id}/edit`);
+  };
 
-    const fetchEvent = async () => {
+  const handleDeleteClick = async () => {
+    if (!window.confirm('Are you sure you want to delete this event?')) {
+      return;
+    }
+
+    try {
+      if (!user?.id || !id) return;
+      
+      setLoading(true);
+      await deleteEvent(id, user.id);
+      
+      toast({
+        title: "Success",
+        description: "Event deleted successfully",
+      });
+      navigate('/');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete event",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchEventAndTicket = async () => {
+      
       if (!id) return;
 
       try {
-        // Try to fetch from Supabase
-        const { data, error } = await supabase
+        const { data: eventData, error: eventError } = await supabase
           .from('events')
           .select('*')
           .eq('id', id)
           .single();
 
-        if (!error && data) {
-          setEvent(data);
-          setHasTicket(data.attendees.includes(user?.id || "currentUser"));
-          return;
+        if (eventError) throw eventError;
+        if (!eventData) throw new Error("Event not found");
+
+        if (mounted) {
+          setEvent(eventData);
+          if (user?.id) {
+            setIsCreator(user?.id && eventData.creator_id === user.id);
+
+            const { data: ticketData } = await supabase
+              .from('tickets')
+              .select('*')
+              .eq('event_id', id)
+              .eq('user_id', user.id)
+              .single();
+
+            setHasTicket(!!ticketData);
+            if (ticketData) {
+              setTicketQuantity(ticketData.quantity);
+            }
+          }
         }
-
-        // If not found in Supabase, check mock events
-        let foundEvent = mockEvents.find((e) => e.id === id);
-
-        if (foundEvent) {
-          setEvent(foundEvent);
-          setHasTicket(foundEvent.attendees.includes(user?.id || "currentUser"));
-        } else {
+      } catch (error: any) {
+        console.error("Error loading event:", error);
+        if (mounted) {
           toast({
-            title: "Event not found",
-            description: "The event you're looking for couldn't be found.",
+            title: "Error",
+            description: "Could not load event details",
             variant: "destructive",
           });
         }
-      } catch (error) {
-        console.error("Error fetching event:", error);
-        
-        // Try mock events as fallback
-        let foundEvent = mockEvents.find((e) => e.id === id);
-        
-        if (foundEvent) {
-          setEvent(foundEvent);
-          setHasTicket(foundEvent.attendees.includes(user?.id || "currentUser"));
-        } else {
-          toast({
-            title: "Error loading event",
-            description: "There was a problem loading the event details.",
-            variant: "destructive",
-          });
+      } finally {
+        if (mounted) {
+          setLoading(false);
         }
       }
     };
 
-    fetchEvent();
-  }, [id, toast, user]);
+    fetchEventAndTicket();
+
+    return () => {
+      mounted = false;
+    };
+  }, [id, user?.id, toast]);
+
+  // Auth effect
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  
+  
+  
+  const deleteEvent = async (eventId: string, userId: string): Promise<void> => {
+    try {
+      // First verify the creator
+      const { data: existingEvent } = await supabase
+        .from('events')
+        .select('creator_id')
+        .eq('id', eventId)
+        .single();
+  
+      if (!existingEvent || existingEvent.creator_id !== userId) {
+        throw new Error('Unauthorized: You can only delete your own events');
+      }
+  
+      // Delete related tickets first (if you have a tickets table)
+      await supabase
+        .from('tickets')
+        .delete()
+        .eq('event_id', eventId);
+  
+      // Then delete the event
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', eventId);
+  
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Failed to delete event:', error);
+      throw new Error(error.message || 'Failed to delete event');
+    }
+  };
 
   const handleBookTicket = async () => {
-    if (!user) {
-      toast({
-        title: "Login required",
-        description: "Please log in to book tickets.",
-        variant: "destructive",
-      });
-      navigate("/login");
-      return;
-    }
+    if (!user || !event || !id) return;
 
-    if (!event) {
-      toast({
-        title: "Event not found",
-        description: "Cannot book a ticket for an event that doesn't exist.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (hasTicket) {
-      if (isTicketFree(event)) {
-        setEvent({
-          ...event,
-          attendees: event.attendees.filter((a) => a !== "currentUser"),
-        });
-        setHasTicket(false);
-        toast({
-          title: "Ticket cancelled",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-
-    if (isTicketFree(event)) {
-      setEvent({
-        ...event,
-        attendees: [...event.attendees, "currentUser"],
-      });
-      
-      saveTicket(user.id, event.title, event.date);
-      window.dispatchEvent(new Event('ticketsUpdated'));
-      
-      setHasTicket(true);
-      toast({
-        title: "Ticket Confirmed!",
-        description: "Your ticket for the event is confirmed.",
-        variant: "default",
-      });
-    } else {
-      navigate(`/payment?eventId=${event.id}&price=${getTicketPrice(event)}`);
-    }
-  };
-
-  const handleDeleteEvent = async () => {
-    if (!event?.id) return;
-    
+    setIsBooking(true);
     try {
-      await deleteEvent(event.id);
-      toast({
-        title: "Event deleted",
-        description: "The event has been successfully deleted.",
-      });
-      navigate('/');
-    } catch (error) {
-      console.error("Error deleting event:", error);
+      if (hasTicket) {
+        await supabase
+          .from('tickets')
+          .delete()
+          .eq('event_id', id)
+          .eq('user_id', user.id);
+        
+        setHasTicket(false);
+        setTicketQuantity(1);
+        toast({
+          title: "Success!",
+          description: "Your ticket has been cancelled.",
+        });
+      } else {
+        if (event.price === 0) {
+          const ticketNumber = `TCKT-${Math.floor(Math.random() * 900000) + 100000}`;
+          await supabase
+            .from('tickets')
+            .insert({
+              event_id: id,
+              user_id: user.id,
+              ticket_number: ticketNumber,
+              quantity: ticketQuantity
+            });
+          
+          setHasTicket(true);
+          toast({
+            title: "Success!",
+            description: "Your free ticket has been booked.",
+          });
+        } else {
+          if (!stripe) {
+            throw new Error('Stripe not initialized');
+          }
+
+          const { id: sessionId } = await createCheckoutSession(id, ticketQuantity, user.id);
+          
+          const result = await stripe.redirectToCheckout({
+            sessionId
+          });
+
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error("Booking error:", error);
       toast({
         title: "Error",
-        description: "Could not delete the event.",
+        description: error.message || "Could not process your request",
         variant: "destructive",
       });
+    } finally {
+      setIsBooking(false);
     }
   };
 
-  const handleEditEvent = () => {
-    navigate(`/edit-event/${event?.id}`);
-  };
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-event-purple"></div>
+        </div>
+      </div>
+    );
+  }
 
-  const isEventCreator = user?.email === event?.organizer;
-  const showAsPaid = event ? !isTicketFree(event) : false;
-  const ticketConfirmed = hasTicket && event ? isTicketFree(event) : false;
+  if (!event) {
+    return (
+      <div className="container mx-auto py-8 px-4">
+        <p className="text-center text-gray-600">Event not found</p>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      {isEventCreator && (
-        <div className="container max-w-2xl mx-auto pt-4 px-4 flex justify-end gap-2">
-          <Button variant="outline" onClick={handleEditEvent}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Event
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Event
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action cannot be undone. This will permanently delete the event.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteEvent}>Delete</AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      )}
-      <EventDetailsMain
-        event={event}
-        hasTicket={hasTicket}
-        ticketConfirmed={ticketConfirmed}
-        showAsPaid={showAsPaid}
-        onBookTicket={handleBookTicket}
+    <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <EventDetailsHeader 
+        event={event} 
+        isCreator={isCreator} 
+        onDelete={handleDeleteClick}
       />
+      <EventDetailsAbout event={event} />
+      
+      <div className="mt-8">
+        {user ? (
+          <div className="space-y-4">
+            {!hasTicket && !isCreator && (
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium">Quantity:</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTicketQuantity(Math.max(1, ticketQuantity - 1))}
+                    disabled={ticketQuantity <= 1 || isBooking}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-8 text-center">{ticketQuantity}</span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTicketQuantity(ticketQuantity + 1)}
+                    disabled={isBooking}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            {!isCreator && (
+              <Button 
+                onClick={handleBookTicket}
+                disabled={isBooking}
+                className="w-full sm:w-auto"
+              >
+                {isBooking ? "Processing..." : 
+                 hasTicket ? 'Cancel Ticket' : 
+                 `Book ${ticketQuantity} Ticket${ticketQuantity > 1 ? 's' : ''}`}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Button
+            onClick={() => navigate('/login', { 
+              state: { returnTo: window.location.pathname } 
+            })}
+            className="w-full sm:w-auto"
+          >
+            Login to Book Tickets
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

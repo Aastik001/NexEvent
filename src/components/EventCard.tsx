@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { Event } from "../types/event";
 import { Badge } from "./ui/badge";
 import { format, parse } from "date-fns";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { formatPrice } from "@/lib/utils";
 
 interface EventCardProps {
   event: Event;
@@ -16,58 +18,52 @@ const categoryColors: Record<string, string> = {
   other: "bg-event-soft-yellow",
 };
 
-export const EventCard = ({ event }: EventCardProps) => {
-  // Format the date for display
-  const displayDate = () => {
-    try {
-      const parsedDate = parse(event.date, "yyyy-MM-dd", new Date());
-      return format(parsedDate, "MMM d, yyyy");
-    } catch {
-      return event.date;
-    }
-  };
-
+const EventCard = ({ event }: EventCardProps) => {
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-gray-100 flex flex-col h-full">
-      {event.imageUrl && (
-        <div className="h-48 overflow-hidden">
+    <Card className="flex flex-col h-full">
+      {/* Image section */}
+      <div className="relative h-40 sm:h-48 overflow-hidden rounded-t-lg">
+        {event.image_url ? (
           <img
-            src={event.imageUrl}
+            src={event.image_url}
             alt={event.title}
-            className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover"
           />
-        </div>
-      )}
-      <div className="p-5 flex flex-col flex-grow">
-        <div className="mb-3 flex justify-between items-start">
-          <Badge className={`${categoryColors[event.category]} text-gray-700`}>
-            {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-          </Badge>
-        </div>
-        <h3 className="text-xl font-semibold mb-2 text-gray-800">{event.title}</h3>
-        <p className="text-gray-600 mb-4 line-clamp-2 flex-grow">{event.description}</p>
-        <div className="flex flex-col gap-2 text-sm text-gray-500 mt-auto">
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-event-purple" />
-            <span>{displayDate()} • {event.time}</span>
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <p className="text-gray-500">No Image Available</p>
           </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-event-purple" />
-            <span>{event.location}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-event-purple" />
-            <span>{event.attendees.length} attending</span>
-          </div>
-        </div>
-        <Link 
-          to={`/event/${event.id}`} 
-          className="mt-4 text-event-purple font-medium hover:text-purple-700 inline-flex items-center"
-        >
-          View details
-        </Link>
+        )}
       </div>
-    </div>
+
+      <CardHeader>
+        <h3 className="text-xl font-semibold">{event.title}</h3>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Calendar className="h-4 w-4" />
+          <span>{format(new Date(event.date), 'MMM dd, yyyy')}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <MapPin className="h-4 w-4" />
+          <span>{event.location}</span>
+        </div>
+        <div className="mt-2 text-lg font-semibold text-event-purple">
+          {event.price === 0 ? 'Free' : formatPrice(event.price)}
+        </div>
+      </CardHeader>
+
+      <CardContent>
+        <p className="text-gray-600 line-clamp-2">{event.description}</p>
+      </CardContent>
+
+      <CardFooter className="mt-auto">
+      <Link 
+  to={`/event/${event.id}`}  // Changed from /events/${event.id}
+  className="text-event-purple hover:text-purple-700"
+>
+  View Details →
+</Link>
+      </CardFooter>
+    </Card>
   );
 };
 

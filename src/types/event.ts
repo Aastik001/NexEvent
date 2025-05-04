@@ -7,9 +7,22 @@ export interface Event {
   time: string;
   location: string;
   organizer: string;
-  imageUrl?: string;
+  image_url: string;
+  admissionfree: boolean;
   attendees: string[];
-  category: 'business' | 'social' | 'education' | 'other';
-  price?: number;
-  admissionFree?: boolean;
+  category: string;
+  creator_id: string;  // Add this field
+  price?: number;     // Make sure price is included if not already
 }
+
+export type EventInput = {
+  title: string;
+  description?: string;
+  date: string;  // "YYYY-MM-DD"
+  time?: string; // e.g. "18:00"
+  location?: string;
+  organizer?: string;
+  imageUrl?: string; // camelCase
+  admissionFree?: boolean; // camelCase
+};
+

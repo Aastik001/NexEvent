@@ -19,12 +19,7 @@ const EventsPage = () => {
       // Fetch events (which will return mock events as fallback if DB fetch fails)
       const eventsData = await getEvents();
       
-      if (eventsData.length > 0) {
-        toast({
-          title: "Welcome!",
-          description: "Event data loaded successfully.",
-        });
-      }
+      
       
       return eventsData;
     },
@@ -53,7 +48,7 @@ const EventsPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-6 px-2 sm:px-4 md:px-8">
       <div className="mb-10">
         <div className="flex items-center justify-center gap-3 mb-3">
           <Calendar className="h-8 w-8 text-event-purple" />
@@ -79,7 +74,7 @@ const EventsPage = () => {
       </div>
 
       {filteredEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {filteredEvents.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}

@@ -1,4 +1,3 @@
-
 import { CalendarDays, Plus, User, LogIn, UserPlus, LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -21,8 +20,9 @@ const Header = () => {
 
     // Listen to auth state changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event);
-      setUser(formatUser(session?.user));
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        setUser(formatUser(session?.user));
+      }
     });
 
     return () => {
@@ -38,18 +38,18 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-10">
-      <div className="container mx-auto flex justify-between items-center">
+    <header className="bg-white border-b border-gray-200 py-4 px-4 sm:px-6 sticky top-0 z-10">
+      <div className="container mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
         <Link to="/" className="flex items-center gap-2">
           <CalendarDays className="h-6 w-6 text-event-purple" />
           <span className="font-bold text-xl text-event-dark">NexEvent</span>
         </Link>
-        <nav className="flex items-center gap-4">
+        <nav className="flex flex-wrap items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center sm:justify-end">
           <Link to="/">
-            <Button variant="ghost">Events</Button>
+            <Button variant="ghost" size="sm">Events</Button>
           </Link>
           <Link to="/create-event">
-            <Button className="bg-event-purple hover:bg-purple-600 gap-2">
+            <Button className="bg-event-purple hover:bg-purple-600 gap-2" size="sm">
               <Plus className="h-4 w-4" />
               Create Event
             </Button>
@@ -59,12 +59,12 @@ const Header = () => {
           ) : user ? (
             <>
               <Link to="/profile">
-                <Button variant="ghost" className="gap-2" title="Profile">
+                <Button variant="ghost" className="gap-2" size="sm" title="Profile">
                   <User className="h-5 w-5" />
                   Profile
                 </Button>
               </Link>
-              <Button variant="ghost" onClick={handleLogout} title="Logout">
+              <Button variant="ghost" onClick={handleLogout} size="sm" title="Logout">
                 <LogOut className="h-4 w-4" />
                 Logout
               </Button>
@@ -72,13 +72,13 @@ const Header = () => {
           ) : (
             <>
               <Link to="/login">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2" size="sm">
                   <LogIn className="h-4 w-4" />
                   Login
                 </Button>
               </Link>
               <Link to="/signup">
-                <Button variant="outline" className="gap-2">
+                <Button variant="outline" className="gap-2" size="sm">
                   <UserPlus className="h-4 w-4" />
                   Sign Up
                 </Button>
