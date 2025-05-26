@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -8,14 +7,28 @@ import { UserPlus } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 const SignupPage = () => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        description: "Please make sure your passwords match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -25,6 +38,11 @@ const SignupPage = () => {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            mobile,
+          },
         },
       });
 
@@ -39,8 +57,6 @@ const SignupPage = () => {
       } else {
         // Check if user was created
         if (data && data.user) {
-          console.log("User created:", data.user);
-          
           toast({
             title: "Sign up successful!",
             description: "Please check your email to confirm your account before logging in.",
@@ -72,6 +88,50 @@ const SignupPage = () => {
           Sign Up
         </h2>
         <form onSubmit={handleSignup} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block mb-1 text-sm" htmlFor="signup-firstname">
+                First Name
+              </label>
+              <Input
+                id="signup-firstname"
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoComplete="given-name"
+                placeholder="First name"
+              />
+            </div>
+            <div>
+              <label className="block mb-1 text-sm" htmlFor="signup-lastname">
+                Last Name
+              </label>
+              <Input
+                id="signup-lastname"
+                type="text"
+                required
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                autoComplete="family-name"
+                placeholder="Last name"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block mb-1 text-sm" htmlFor="signup-mobile">
+              Mobile Number
+            </label>
+            <Input
+              id="signup-mobile"
+              type="tel"
+              required
+              value={mobile}
+              onChange={(e) => setMobile(e.target.value)}
+              autoComplete="tel"
+              placeholder="Mobile number"
+            />
+          </div>
           <div>
             <label className="block mb-1 text-sm" htmlFor="signup-email">
               Email
@@ -98,6 +158,21 @@ const SignupPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
               placeholder="At least 6 characters"
+              minLength={6}
+            />
+          </div>
+          <div>
+            <label className="block mb-1 text-sm" htmlFor="signup-confirm-password">
+              Confirm Password
+            </label>
+            <Input
+              id="signup-confirm-password"
+              type="password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              autoComplete="new-password"
+              placeholder="Re-enter your password"
               minLength={6}
             />
           </div>

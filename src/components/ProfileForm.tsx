@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, type SupabaseUser } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -11,7 +10,10 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 interface Props {
-  user: SupabaseUser;
+  user: any;
+  firstName?: string;
+  lastName?: string;
+  mobile?: string;
 }
 
 const emailSchema = z.object({
@@ -30,7 +32,7 @@ const passwordSchema = z.object({
 type EmailForm = z.infer<typeof emailSchema>;
 type PasswordForm = z.infer<typeof passwordSchema>;
 
-const ProfileForm = ({ user }: Props) => {
+const ProfileForm = ({ user, firstName, lastName, mobile }: Props) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -134,103 +136,121 @@ const ProfileForm = ({ user }: Props) => {
   };
 
   return (
-    <Tabs defaultValue="email" className="max-w-lg">
-      <TabsList className="mb-4">
-        <TabsTrigger value="email">Update Email</TabsTrigger>
-        <TabsTrigger value="password">Update Password</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="email">
-        <Form {...emailForm}>
-          <form onSubmit={emailForm.handleSubmit(updateEmail)} className="space-y-4">
-            <FormField
-              control={emailForm.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="your@email.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="bg-event-purple" disabled={loading}>
-              {loading ? "Updating..." : "Update Email"}
-            </Button>
-          </form>
-        </Form>
-      </TabsContent>
-      
-      <TabsContent value="password">
-        <Form {...passwordForm}>
-          <form onSubmit={passwordForm.handleSubmit(updatePassword)} className="space-y-4">
-            <FormField
-              control={passwordForm.control}
-              name="currentPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={passwordForm.control}
-              name="newPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>New Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={passwordForm.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm New Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <Button type="submit" className="bg-event-purple" disabled={loading}>
-              {loading ? "Updating..." : "Update Password"}
-            </Button>
-          </form>
-        </Form>
-      </TabsContent>
-    </Tabs>
+    <div>
+      <div className="mb-8 space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block mb-1 text-sm">First Name</label>
+            <Input value={firstName || ""} readOnly />
+          </div>
+          <div>
+            <label className="block mb-1 text-sm">Last Name</label>
+            <Input value={lastName || ""} readOnly />
+          </div>
+        </div>
+        <div>
+          <label className="block mb-1 text-sm">Mobile Number</label>
+          <Input value={mobile || ""} readOnly />
+        </div>
+      </div>
+      <Tabs defaultValue="email" className="max-w-lg">
+        <TabsList className="mb-4">
+          <TabsTrigger value="email">Update Email</TabsTrigger>
+          <TabsTrigger value="password">Update Password</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="email">
+          <Form {...emailForm}>
+            <form onSubmit={emailForm.handleSubmit(updateEmail)} className="space-y-4">
+              <FormField
+                control={emailForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="your@email.com"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="bg-event-purple" disabled={loading}>
+                {loading ? "Updating..." : "Update Email"}
+              </Button>
+            </form>
+          </Form>
+        </TabsContent>
+        
+        <TabsContent value="password">
+          <Form {...passwordForm}>
+            <form onSubmit={passwordForm.handleSubmit(updatePassword)} className="space-y-4">
+              <FormField
+                control={passwordForm.control}
+                name="currentPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Current Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={passwordForm.control}
+                name="newPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={passwordForm.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm New Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button type="submit" className="bg-event-purple" disabled={loading}>
+                {loading ? "Updating..." : "Update Password"}
+              </Button>
+            </form>
+          </Form>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 

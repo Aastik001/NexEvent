@@ -1,13 +1,12 @@
-
 import { useEffect, useState } from "react";
 import ProfileForm from "@/components/ProfileForm";
 import TicketList from "@/components/TicketList";
-import { supabase, formatUser, type SupabaseUser } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 import { LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ProfilePage = () => {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,7 +14,7 @@ const ProfilePage = () => {
     const fetchUser = async () => {
       setLoading(true);
       const { data } = await supabase.auth.getUser();
-      setUser(formatUser(data?.user));
+      setUser(data?.user);
       setLoading(false);
     };
     fetchUser();
@@ -45,6 +44,9 @@ const ProfilePage = () => {
     );
   }
 
+  // Extract metadata
+  const { first_name, last_name, mobile } = user.user_metadata || {};
+
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-8">
@@ -59,7 +61,12 @@ const ProfilePage = () => {
       </div>
       <section className="mb-10">
         <h2 className="text-lg font-semibold mb-2">Personal Info</h2>
-        <ProfileForm user={user} />
+        <ProfileForm
+          user={user}
+          firstName={first_name}
+          lastName={last_name}
+          mobile={mobile}
+        />
       </section>
       <section>
         <h2 className="text-lg font-semibold mb-2">My Booked Tickets</h2>

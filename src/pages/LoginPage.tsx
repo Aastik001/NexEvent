@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,6 @@ const LoginPage = () => {
   const { toast } = useToast();
   const location = useLocation();
   const returnTo = (location.state as any)?.returnTo || '/';
-  
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +80,11 @@ const LoginPage = () => {
               autoComplete="current-password"
               placeholder="••••••••"
             />
+            <div className="mt-2 text-right">
+              <Link to="/forgot-password" className="text-sm text-event-purple underline hover:opacity-80">
+                Forgot password?
+              </Link>
+            </div>
           </div>
           <Button type="submit" className="w-full bg-event-purple hover:bg-purple-700" disabled={loading}>
             {loading ? "Logging in..." : "Login"}
